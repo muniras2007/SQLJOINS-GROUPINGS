@@ -1,0 +1,69 @@
+SELECT customers.customerName AS 'Customer Name', CONCAT(employees.lastName,' ', employees.firstName) AS 'Sales Rep'
+FROM customers
+JOIN employees
+ON employees.employeeNumber=customers.salesRepEmployeeNumber
+ORDER BY customerName ASC;
+
+SELECT products.productName AS 'Product Name',SUM( orderdetails.quantityOrdered) AS 'Total # Ordered',SUM( orderdetails.quantityOrdered * priceEach) AS 'Total sale'
+FROM products
+JOIN orderdetails
+ON products.productCode=orderdetails.productCode
+GROUP BY productName
+ORDER BY  (orderdetails.quantityOrdered*priceEach) DESC;
+
+SELECT orders.status AS 'Order Status', orderdetails.quantityOrdered AS '# Orders'
+FROM orders
+JOIN orderdetails
+ON orders.orderNumber=orderdetails.orderNumber
+ORDER BY STATUS ASC;
+
+SELECT productlines.productLine AS 'Product Line',orderdetails.quantityOrdered AS '# Sold'
+FROM productlines
+JOIN productlines
+ON productlines.productLine=products.productLine
+JOIN products
+ON products.productCode=orderdetails.productCode
+ORDER BY quantityOrdered DESC;
+
+SELECT 
+    salesRep AS 'Sales Rep',
+    count(quantityOrdered) AS '# Orders',
+    SUM(totalSales) AS 'Total Sales'
+FROM
+    (
+    SELECT 
+			e.employeeNumber,
+            CONCAT(e.lastName, ', ', e.firstName) AS salesRep,
+            od.quantityOrdered,
+            od.priceEach,
+			-- case statement to to handle multiple returns
+            CASE 
+                WHEN od.quantityOrdered IS NULL THEN 0.00 
+                WHEN od.quantityOrdered = 0 THEN 0.00    
+                WHEN od.quantityOrdered > 0 THEN od.quantityOrdered * od.priceEach  
+            END AS totalSales,     -- end CASE and assign result to alias
+            e.jobTitle  -- example of why you need a table alias - cleaner code
+    FROM customers c
+    RIGHT JOIN 
+				(   -- Nested SELECT statement
+                SELECT employeeNumber, 
+					   lastName, 
+                       firstName, 
+                       jobTitle
+                FROM employees
+				WHERE jobTitle = 'Sales Rep' -- return 'Sales Rep' only
+				) AS e 
+	ON e.employeeNumber = c.salesRepEmployeeNumber
+    LEFT JOIN orders o 
+    ON o.customerNumber = c.customerNumber
+    LEFT JOIN orderdetails od 
+    ON o.orderNumber = od.orderNumber) AS x
+GROUP BY employeeNumber
+ORDER BY SUM(totalSales) DESC;
+
+SELECT  MONTHNAME(paymentDate) AS 'Month',
+		YEAR(paymentDate) AS 'Year',
+        FORMAT(SUM(amount), 2) AS 'Payments Recieved'
+FROM payments
+GROUP BY 2 ,1
+ORDER BY paymentDate;
